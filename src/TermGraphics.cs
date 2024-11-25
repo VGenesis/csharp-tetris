@@ -31,8 +31,8 @@ public class TermGraphics{
         this.scorePanel = new Rect(1, 1, 20, h);
         this.boardPanel = new Rect(22, 1, w, h);
         this.shapePanel = new Rect(23+w, 1, 10, h);
-        this.width = 60;
-        this.height = 27;
+        this.width = w + 34;
+        this.height = h + 2;
         this.debug.enabled = false;
 
         this.nextShapes = new Shape[3];
@@ -47,7 +47,7 @@ public class TermGraphics{
         this.debug.message = message;
     }
 
-    public void render(char[,] board){
+    public void render(char[,] board, int score, Dictionary<string, int> scoreboard){
         int[] borders = {
             0,
             boardPanel.x+border,
@@ -61,6 +61,8 @@ public class TermGraphics{
             new Rect(shapePanel.x + 2, shapePanel.y + 11, 4, 4),
         };
 
+        string scoreStr = "   YOU " + score.ToString();
+
         for(int i = 0; i < this.height; i++){
             for(int j = 0; j < this.width; j++){
                 if(
@@ -69,7 +71,34 @@ public class TermGraphics{
                         shapePanel.contains(j, i)
                   ) switch(j){
                     case int n when(scorePanel.contains(n, i)):
-                        Console.Write(' ');
+                        switch(i){
+                            case 2:
+                                Console.ForegroundColor = (score > scoreboard.ElementAt(0).Value)? ConsoleColor.Yellow
+                                    : (score > scoreboard.ElementAt(1).Value)? ConsoleColor.Red
+                                    : (score > scoreboard.ElementAt(2).Value)? ConsoleColor.Blue
+                                    : ConsoleColor.White;
+                                if(n >= 2 && n < scoreStr.Length+2)
+                                    Console.Write(scoreStr[n-2]);
+                                else 
+                                    Console.Write(' ');
+                                break;
+                            case int m when(m >= 4 && m < 4 + scoreboard.Count):
+                                Console.ForegroundColor = (m == 4) ? ConsoleColor.Yellow
+                                    : (m == 5) ? ConsoleColor.Red
+                                    : (m == 6) ? ConsoleColor.Blue
+                                    : ConsoleColor.DarkGray;
+                                     
+                                KeyValuePair<string, int> entry = scoreboard.ElementAt(m-4);
+                                string scoreText = entry.Key + " " + entry.Value.ToString();
+                                if(n >= 2 && n < scoreText.Length+2)
+                                    Console.Write(scoreText[n-2]);
+                                else 
+                                    Console.Write(' ');
+                                break;
+                            default:
+                                Console.Write(' ');
+                                break;
+                        }
                         break;
                     case int n when(boardPanel.contains(n, i)):
                         int x = n - boardPanel.x;
@@ -109,21 +138,6 @@ public class TermGraphics{
                     Console.ForegroundColor = ConsoleColor.White;
                     Console.Write('#');
                 }
-
-
-                // if(j < borders[1]){
-                //     Console.Write(' ');
-                // } else if(j < boardPanel.x+boardPanel.w){
-                //     // Console.Write((j-boardPanel.x) + ", " + j-boardPanel.y);
-                //     char value = board[j-boardPanel.x, i-boardPanel.y];
-                //     int index = shapes.IndexOf(value);
-                //     Console.ForegroundColor = (index != -1)
-                //         ? colors[index]
-                //         : ConsoleColor.DarkGray;
-                //     Console.Write(value);
-                // } else {
-                //     Console.Write(' ');
-                // }
             }
 
             Console.WriteLine();

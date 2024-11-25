@@ -14,9 +14,12 @@ class App {
     private int shapeFallTime;
     private int shapeMinTime;
 
+    private const string scoreboardFilename = "src/scoreboard.txt";
+    private Dictionary<string, int> scoreboard;
+
     private int points = 0;
-    private int levelUpPoints = 500;
     private int level = 1;
+    private int levelUpPoints = 500;
     private int speedUpLevel= 5;
 
     public const int FPS = 60;
@@ -35,6 +38,36 @@ class App {
         this.height = height;
         this.board = new char[width, height];
         this.view = new char[width, height];
+
+        this.loadScoreboard();
+    }
+
+    public void loadScoreboard(){
+        this.scoreboard = new Dictionary<string, int>();
+        if(File.Exists(scoreboardFilename)){
+            using (StreamReader sr = File.OpenText(scoreboardFilename)){
+                string? line = sr.ReadLine();
+                while(line != null){
+                    string[] words = line.Split(":");
+                    string name = words[0];
+                    if(int.TryParse(words[1], out int score))
+                        scoreboard.Add(name, score);
+
+                    line = sr.ReadLine();
+                }
+            }
+        }else{
+            Console.WriteLine("no file");
+        }
+    }
+
+    public void saveScoreboard(){
+        using (StreamWriter sw = File.CreateText(scoreboardFilename)){
+            foreach(KeyValuePair<string, int> entry in scoreboard){
+                string line = entry.Key + ":" + entry.Value.ToString();
+                sw.WriteLine(line);
+            }
+        }
     }
 
     public void init(){
@@ -85,7 +118,7 @@ class App {
                     this.detectCollision();
                     shape.moveRight();
                     break;
-                case ConsoleKey.Spacebar:
+                case ConsoleKey.R:
                     shape.rotate();
                     rect = shape.rect;
                     while(shape.x + rect.x < 0) shape.x++;
@@ -167,8 +200,7 @@ class App {
         this.renderCurrentShape();
         this.updateView();
 
-        // this.graphics.setDebugMessage("Shape Collision" + currentShape.collision.toString());
-        this.graphics.render(view);
+        this.graphics.render(view, points, scoreboard);
 
         this.clearCurrentShape();
     }
@@ -222,6 +254,7 @@ class App {
             filled += (board[i, y] != '-')? 1 : 0;
 
         if(filled == width){
+            this.points += 1000;
             for(int i = 0; i < width; i++)
                 for(int j = y; j > 0; j--)
                     board[i, j] = board[i, j-1];
@@ -240,6 +273,7 @@ class App {
         Collision collision = this.detectCollision();
         if(!collision.down) this.currentShape.fallDown();
         else {
+            points += 100;
             Vector[] blocks = shape.getBlocks();
             foreach(Vector block in blocks)
                 board[x+block.x, y+block.y] = shape.value;
@@ -287,6 +321,5 @@ class App {
     }
 
     public void exit(){ this.running = false; }
-
 }
 
