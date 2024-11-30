@@ -1,4 +1,12 @@
+
 public class TermGraphics{
+    private enum GameState{
+        IDLE,
+        RUNNING,
+        SUBMIT_SCORE,
+        GAMEOVER
+    };
+
     private Rect boardPanel;
     private Rect scorePanel;
     private Rect shapePanel;
@@ -38,6 +46,10 @@ public class TermGraphics{
         this.nextShapes = new Shape[3];
     }
 
+    public void clear(){
+        Console.Clear();
+    }
+
     public void setShapes(Shape[] shapes){
         this.nextShapes = shapes;
     }
@@ -47,7 +59,7 @@ public class TermGraphics{
         this.debug.message = message;
     }
 
-    public void render(char[,] board, int score, Dictionary<string, int> scoreboard){
+    public void renderRunning(char[,] board, int score, Scoreboard scoreboard){
         int[] borders = {
             0,
             boardPanel.x+border,
@@ -73,22 +85,22 @@ public class TermGraphics{
                     case int n when(scorePanel.contains(n, i)):
                         switch(i){
                             case 2:
-                                Console.ForegroundColor = (score > scoreboard.ElementAt(0).Value)? ConsoleColor.Yellow
-                                    : (score > scoreboard.ElementAt(1).Value)? ConsoleColor.Red
-                                    : (score > scoreboard.ElementAt(2).Value)? ConsoleColor.Blue
+                                Console.ForegroundColor = (score > scoreboard.at(0).Key)? ConsoleColor.Yellow
+                                    : (score > scoreboard.at(1).Key)? ConsoleColor.Red
+                                    : (score > scoreboard.at(2).Key)? ConsoleColor.Blue
                                     : ConsoleColor.White;
                                 if(n >= 2 && n < scoreStr.Length+2)
                                     Console.Write(scoreStr[n-2]);
                                 else 
                                     Console.Write(' ');
                                 break;
-                            case int m when(m >= 4 && m < 4 + scoreboard.Count):
+                            case int m when(m >= 4 && m < scoreboard.size() + 4):
                                 Console.ForegroundColor = (m == 4) ? ConsoleColor.Yellow
                                     : (m == 5) ? ConsoleColor.Red
                                     : (m == 6) ? ConsoleColor.Blue
                                     : ConsoleColor.DarkGray;
                                      
-                                KeyValuePair<string, int> entry = scoreboard.ElementAt(m-4);
+                                KeyValuePair<int, string> entry = scoreboard.at(scoreboard.size() - (m-4) - 1);
                                 string scoreText = entry.Key + " " + entry.Value.ToString();
                                 if(n >= 2 && n < scoreText.Length+2)
                                     Console.Write(scoreText[n-2]);
@@ -150,5 +162,33 @@ public class TermGraphics{
             Console.SetCursorPosition(0, Console.CursorTop - 2);
         }
         Console.SetCursorPosition(0, Console.CursorTop - this.height);
+    }
+
+    private string getSubmitNameRender(SubmitData data){
+        string res = "";
+        foreach(char c in data.name.getName())
+            res += c + " ";
+        return res;
+    }
+
+    public void renderSubmitScore(SubmitData submitData){
+        Console.WriteLine();
+        Console.WriteLine("\tG A M E O V E R");
+        Console.WriteLine();
+        Console.WriteLine("\tScore: " + submitData.getScore().ToString());
+        Console.WriteLine("\tName: " + this.getSubmitNameRender(submitData));
+
+        Console.SetCursorPosition(0, Console.CursorTop-5);
+    }
+
+    public void renderGameOver(){
+        Console.WriteLine();
+        Console.WriteLine("\tG A M E O V E R");
+        Console.WriteLine();
+        Console.WriteLine("\t R to restart");
+        Console.WriteLine("\t Q to quit");
+
+        Console.SetCursorPosition(0, Console.CursorTop - 5);
+
     }
 }

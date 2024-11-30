@@ -1,4 +1,4 @@
-class App {
+public class App {
     private TermGraphics graphics;
 
     private DateTime startTime;
@@ -6,7 +6,7 @@ class App {
 
     private readonly int width, height;
     private char[,] board;
-    private char[,] view;
+    public char[,] view;
 
     private Shape currentShape;
     private Shape[] nextShapes;
@@ -15,7 +15,7 @@ class App {
     private int shapeMinTime;
 
     private const string scoreboardFilename = "src/scoreboard.txt";
-    private Dictionary<string, int> scoreboard;
+    private Scoreboard scoreboard;
 
     private int points = 0;
     private int level = 1;
@@ -28,6 +28,9 @@ class App {
     public bool running;
     public bool gameover;
 
+    public GameState state;
+    public SubmitData submitData;
+
     public App(int width, int height) {
         this.graphics = new TermGraphics(width, height);
         this.startTime = DateTime.Now;
@@ -39,39 +42,20 @@ class App {
         this.board = new char[width, height];
         this.view = new char[width, height];
 
-        this.loadScoreboard();
+        this.scoreboard = new Scoreboard();
+        this.scoreboard.load(scoreboardFilename);
     }
 
-    public void loadScoreboard(){
-        this.scoreboard = new Dictionary<string, int>();
-        if(File.Exists(scoreboardFilename)){
-            using (StreamReader sr = File.OpenText(scoreboardFilename)){
-                string? line = sr.ReadLine();
-                while(line != null){
-                    string[] words = line.Split(":");
-                    string name = words[0];
-                    if(int.TryParse(words[1], out int score))
-                        scoreboard.Add(name, score);
-
-                    line = sr.ReadLine();
-                }
-            }
-        }else{
-            Console.WriteLine("no file");
-        }
-    }
-
-    public void saveScoreboard(){
-        using (StreamWriter sw = File.CreateText(scoreboardFilename)){
-            foreach(KeyValuePair<string, int> entry in scoreboard){
-                string line = entry.Key + ":" + entry.Value.ToString();
-                sw.WriteLine(line);
-            }
-        }
-    }
+    public char[,] getBoard(){ return board; }
+    public int getScore(){ return points; }
 
     public void init(){
+        this.points = 0;
+        this.level = 1;
+        this.state = GameState.RUNNING;
         this.running = true;
+        this.gameover = false;
+
         this.shapeFallTimer = 0;
         this.shapeFallTime = 40;
         this.shapeMinTime = 8;
@@ -87,8 +71,8 @@ class App {
         for(int i = 0; i < 3; i++)
             this.nextShapes[i] = newShape();
 
+        this.submitData = new SubmitData(6);
         this.graphics.setShapes(this.nextShapes);
-        this.gameover = false;
     }
 
     private Shape newShape(){
@@ -97,7 +81,7 @@ class App {
         return shape;
     }
 
-    public void handleInput(){
+    public void handleInputRunning(){
         Shape shape = this.currentShape;
         int x = shape.x,
             y = shape.y;
@@ -135,7 +119,30 @@ class App {
         }
     }
 
-    public bool handleInputBasic() {
+    public bool handleScoreSubmission(){
+        while(Console.KeyAvailable){
+            ConsoleKeyInfo key = Console.ReadKey(true);
+            switch(key.Key){
+                case ConsoleKey.Enter:
+                    this.submitData.setSubmitted(true);
+                    string playerName = new string(submitData.getName());
+                    if(playerName != "")
+                        this.scoreboard.add(this.points, playerName);
+
+                    this.state = GameState.GAME_OVER;
+                    return true;
+                case ConsoleKey.Backspace:
+                    this.submitData.name.delete();
+                    break;
+                default:
+                    this.submitData.name.addChar((char)key.Key);
+                    break;
+            }
+        }
+        return false;
+    }
+
+    public bool handleInputGameover() {
         while(Console.KeyAvailable){
             ConsoleKeyInfo key = Console.ReadKey(true);
             switch(key.Key){
@@ -200,7 +207,19 @@ class App {
         this.renderCurrentShape();
         this.updateView();
 
-        this.graphics.render(view, points, scoreboard);
+        switch(state){
+            case GameState.IDLE:
+                break;
+            case GameState.RUNNING:
+                this.graphics.renderRunning(this.view, this.points, this.scoreboard);
+                break;
+            case GameState.SUBMIT_SCORE:
+                this.graphics.renderSubmitScore(this.submitData);
+                break;
+            case GameState.GAME_OVER:
+                this.graphics.renderGameOver();
+                break;
+        }
 
         this.clearCurrentShape();
     }
@@ -293,6 +312,10 @@ class App {
             for(int i = 0; i < width; i++){
                 if(board[i, 0] != '-' || board[i, 1] != '-'){
                     this.gameover = true;
+                    this.submitData.setSubmitted(false);
+                    this.submitData.setScore(this.points);
+                    this.state = GameState.SUBMIT_SCORE;
+                    this.graphics.clear();
                     return;
                 }
             }
@@ -307,19 +330,37 @@ class App {
     }
 
     public void tick(){
-        this.handleInput();
-        frames++;
+        switch(this.state){
+            case GameState.IDLE:
+                break;
+            case GameState.RUNNING:
+                this.handleInputRunning();
 
-        if(++shapeFallTimer == shapeFallTime){
-            this.detectCollision();
-            this.onBlockFall();
-            shapeFallTimer = 0;
+                frames++;
+                if(++shapeFallTimer == shapeFallTime){
+                    this.detectCollision();
+                    this.onBlockFall();
+                    shapeFallTimer = 0;
+                }
+                break;
+            case GameState.SUBMIT_SCORE:
+                if(this.handleScoreSubmission()){
+                    this.state = GameState.GAME_OVER;
+                    graphics.clear();
+                }
+                break;
+            case GameState.GAME_OVER:
+                this.handleInputGameover();
+                break;
         }
 
         this.render();
         this.awaitNextFrame();
     }
 
-    public void exit(){ this.running = false; }
+    public void exit(){
+        this.running = false;
+        this.scoreboard.save(scoreboardFilename);
+    }
 }
 

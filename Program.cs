@@ -6,19 +6,7 @@
     app.init();
 
     while(app.running)
-        if(!app.gameover)
-            app.tick();
-        else {
-            Console.Clear();
-            Console.WriteLine("#############");
-            Console.WriteLine("# GAME OVER #");
-            Console.WriteLine("#############");
-            Console.WriteLine();
-            Console.WriteLine("  R to restart");
-            Console.WriteLine("  Q to quit");
-
-            while(!app.handleInputBasic());
-        }
+        app.tick();
 
     Console.Clear();
     Console.CursorVisible = true;
