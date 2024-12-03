@@ -10,6 +10,7 @@ public class App {
 
     private Shape currentShape;
     private Shape[] nextShapes;
+    private bool shapeSpedUp;
     private int shapeFallTimer;
     private int shapeFallTime;
     private int shapeMinTime;
@@ -19,8 +20,9 @@ public class App {
 
     private int points = 0;
     private int level = 1;
+    private int levelUpPointsIncrement = 200;
     private int levelUpPoints = 500;
-    private int speedUpLevel= 5;
+    private int speedUpLevel = 5;
 
     public const int FPS = 60;
     private float frameTime;
@@ -57,8 +59,8 @@ public class App {
         this.gameover = false;
 
         this.shapeFallTimer = 0;
-        this.shapeFallTime = 40;
-        this.shapeMinTime = 8;
+        this.shapeFallTime = 60;
+        this.shapeMinTime = 10;
 
         for(int i = 0; i < height; i++)
             for(int j = 0; j < width; j++){
@@ -88,6 +90,7 @@ public class App {
 
         Rect rect = shape.rect;
 
+        this.shapeSpedUp = false;
         while(Console.KeyAvailable){
             ConsoleKeyInfo key = Console.ReadKey(true);
             switch(key.Key){
@@ -108,9 +111,11 @@ public class App {
                     while(shape.x + rect.x < 0) shape.x++;
                     while(shape.x + rect.x + rect.w >= width) shape.x--;
                     while(shape.y + rect.y + rect.h >= height) shape.y--;
-
                     break;
                 case ConsoleKey.S:
+                    this.shapeSpedUp = true;
+                    break;
+                case ConsoleKey.Spacebar:
                     while(shape.fallDown())
                         this.detectCollision();
                         this.onBlockFall();
@@ -293,6 +298,9 @@ public class App {
         if(!collision.down) this.currentShape.fallDown();
         else {
             points += 100;
+            if(points > levelUpPoints)
+                onLevelUp();
+
             Vector[] blocks = shape.getBlocks();
             foreach(Vector block in blocks)
                 board[x+block.x, y+block.y] = shape.value;
@@ -324,8 +332,11 @@ public class App {
 
     private void onLevelUp(){
         if(++level % speedUpLevel == 0){
-            if(shapeFallTime < shapeMinTime)
-                shapeFallTime--;
+            levelUpPoints += levelUpPoints + levelUpPointsIncrement; 
+            shapeFallTime = Math.Max(
+                    (int)(shapeFallTime - Double.Ceiling(shapeFallTime / 20)),
+                    shapeMinTime
+                    );
         }
     }
 
@@ -337,7 +348,8 @@ public class App {
                 this.handleInputRunning();
 
                 frames++;
-                if(++shapeFallTimer == shapeFallTime){
+                int fallTime = (this.shapeSpedUp)? shapeMinTime : shapeFallTime;
+                if(++shapeFallTimer >= fallTime){
                     this.detectCollision();
                     this.onBlockFall();
                     shapeFallTimer = 0;
