@@ -20,7 +20,7 @@ public class App {
 
     private int points = 0;
     private int level = 1;
-    private int levelUpPointsIncrement = 200;
+    private int levelUpPointsInc = 200;
     private int levelUpPoints = 500;
     private int speedUpLevel = 5;
 
@@ -93,6 +93,9 @@ public class App {
         this.shapeSpedUp = false;
         while(Console.KeyAvailable){
             ConsoleKeyInfo key = Console.ReadKey(true);
+            if(!key.Modifiers.HasFlag(ConsoleModifiers.None))
+                continue;
+
             switch(key.Key){
                 case ConsoleKey.Q: 
                     this.exit();
@@ -108,9 +111,16 @@ public class App {
                 case ConsoleKey.R:
                     shape.rotate();
                     rect = shape.rect;
-                    while(shape.x + rect.x < 0) shape.x++;
-                    while(shape.x + rect.x + rect.w >= width) shape.x--;
-                    while(shape.y + rect.y + rect.h >= height) shape.y--;
+
+                    shape.x -= (shape.x + rect.x < 0)
+                        ? shape.x + rect.x
+                        : 0;
+                    shape.x -= (shape.x + rect.x + rect.w >= width)
+                        ? shape.x + rect.x + rect.w - width
+                        : 0;
+                    shape.y -= (shape.y + rect.y + rect.h >= height)
+                        ? shape.y + rect.y + rect.h - height
+                        : 0;
                     break;
                 case ConsoleKey.S:
                     this.shapeSpedUp = true;
@@ -127,6 +137,9 @@ public class App {
     public bool handleScoreSubmission(){
         while(Console.KeyAvailable){
             ConsoleKeyInfo key = Console.ReadKey(true);
+            if(!key.Modifiers.HasFlag(ConsoleModifiers.None))
+                continue;
+
             switch(key.Key){
                 case ConsoleKey.Enter:
                     this.submitData.setSubmitted(true);
@@ -140,7 +153,8 @@ public class App {
                     this.submitData.name.delete();
                     break;
                 default:
-                    this.submitData.name.addChar((char)key.Key);
+                    if(Char.IsLetterOrDigit((char)key.Key))
+                        this.submitData.name.addChar((char)key.Key);
                     break;
             }
         }
@@ -150,6 +164,9 @@ public class App {
     public bool handleInputGameover() {
         while(Console.KeyAvailable){
             ConsoleKeyInfo key = Console.ReadKey(true);
+            if(key.Modifiers.HasFlag(ConsoleModifiers.Control | ConsoleModifiers.Alt))
+                continue;
+
             switch(key.Key){
                 case ConsoleKey.R:
                     this.init();
@@ -216,7 +233,7 @@ public class App {
             case GameState.IDLE:
                 break;
             case GameState.RUNNING:
-                this.graphics.renderRunning(this.view, this.points, this.scoreboard);
+                this.graphics.renderRunning(this.view, this.points, this.levelUpPoints, this.level, this.scoreboard);
                 break;
             case GameState.SUBMIT_SCORE:
                 this.graphics.renderSubmitScore(this.submitData);
@@ -298,7 +315,7 @@ public class App {
         if(!collision.down) this.currentShape.fallDown();
         else {
             points += 100;
-            if(points > levelUpPoints)
+            if(points >= levelUpPoints)
                 onLevelUp();
 
             Vector[] blocks = shape.getBlocks();
@@ -331,8 +348,8 @@ public class App {
     }
 
     private void onLevelUp(){
+        this.levelUpPoints <<= 1;
         if(++level % speedUpLevel == 0){
-            levelUpPoints += levelUpPoints + levelUpPointsIncrement; 
             shapeFallTime = Math.Max(
                     (int)(shapeFallTime - Double.Ceiling(shapeFallTime / 20)),
                     shapeMinTime

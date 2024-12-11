@@ -1,4 +1,5 @@
 public class Scoreboard{
+    // Low-to-high sorted dict
     private SortedDictionary<int, string> scores;
 
     private class DescendingComparer<T> : IComparer<T> where T : IComparable<T> {
@@ -10,7 +11,7 @@ public class Scoreboard{
     }
 
     public void add(int score, string name) { this.scores.Add(score, name); }
-    public KeyValuePair<int, string> at(int i) => this.scores.ElementAt(i);
+    public KeyValuePair<int, string> at(int i) => this.scores.ElementAt(scores.Count-i-1);
     public int size() => this.scores.Count;
 
     public void load(string filePath){

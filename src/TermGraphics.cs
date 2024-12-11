@@ -1,4 +1,3 @@
-
 public class TermGraphics{
     private enum GameState{
         IDLE,
@@ -59,7 +58,7 @@ public class TermGraphics{
         this.debug.message = message;
     }
 
-    public void renderRunning(char[,] board, int score, Scoreboard scoreboard){
+    public void renderRunning(char[,] board, int score, int next, int level, Scoreboard scoreboard){
         int[] borders = {
             0,
             boardPanel.x+border,
@@ -73,7 +72,11 @@ public class TermGraphics{
             new Rect(shapePanel.x + 2, shapePanel.y + 11, 4, 4),
         };
 
-        string scoreStr = "   YOU " + score.ToString();
+        int offset = 2;
+        string scoreformat = "{0, 7}  {1, -9}";
+        string scoreStr = String.Format(scoreformat, "YOU", score);
+        string levelStr = String.Format(scoreformat, "LEVEL", level);
+        string nextStr  = String.Format(scoreformat, "NEXT", next);
 
         for(int i = 0; i < this.height; i++){
             for(int j = 0; j < this.width; j++){
@@ -89,23 +92,36 @@ public class TermGraphics{
                                     : (score > scoreboard.at(1).Key)? ConsoleColor.Red
                                     : (score > scoreboard.at(2).Key)? ConsoleColor.Blue
                                     : ConsoleColor.White;
-                                if(n >= 2 && n < scoreStr.Length+2)
-                                    Console.Write(scoreStr[n-2]);
+                                if(n >= offset && n < scoreStr.Length+offset)
+                                    Console.Write(scoreStr[n-offset]);
                                 else 
                                     Console.Write(' ');
                                 break;
-                            case int m when(m >= 4 && m < scoreboard.size() + 4):
-                                Console.ForegroundColor = (m == 4) ? ConsoleColor.Yellow
-                                    : (m == 5) ? ConsoleColor.Red
-                                    : (m == 6) ? ConsoleColor.Blue
+                            case 3:
+                                Console.ForegroundColor = ConsoleColor.White;
+                                Console.Write((n >= offset && n < levelStr.Length+offset)
+                                        ? levelStr[n-offset]
+                                        : ' ');
+                                break;
+                            case 4:
+                                Console.ForegroundColor = ConsoleColor.White;
+                                Console.Write((n >= offset && n < nextStr.Length+offset)
+                                        ? nextStr[n-offset]
+                                        : ' ');
+                                break;
+
+                            case int m when(m >= 7 && m < scoreboard.size() + 7):
+                                int pos = m-7;
+                                Console.ForegroundColor = (pos == 0) ? ConsoleColor.Yellow
+                                    : (pos == 1) ? ConsoleColor.Red
+                                    : (pos == 2) ? ConsoleColor.Blue
                                     : ConsoleColor.DarkGray;
                                      
-                                KeyValuePair<int, string> entry = scoreboard.at(scoreboard.size() - (m-4) - 1);
-                                string scoreText = entry.Key + " " + entry.Value.ToString();
-                                if(n >= 2 && n < scoreText.Length+2)
-                                    Console.Write(scoreText[n-2]);
-                                else 
-                                    Console.Write(' ');
+                                KeyValuePair<int, string> entry = scoreboard.at(pos);
+                                string scoreText = String.Format(scoreformat, entry.Value, entry.Key);
+                                Console.Write((n >= offset && n < scoreText.Length+offset)
+                                    ? scoreText[n-offset]
+                                    : ' ');
                                 break;
                             default:
                                 Console.Write(' ');
